@@ -14,14 +14,40 @@ export default function Home() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
   const [currentPosition, setCurrentPosition] = useState<number>(0);
   const [isCompleted, setIsCompleted] = useState<boolean>(false);
-
   const [isStarted, setIsStarted] = useState<boolean>(false);
   const [userName, setUserName] = useState<string>("");
 
+  const [startTime, setStartTime] = useState<number>(0);
+  const [totalTime, setTotalTime] = useState<number>(0);
+  const [score, setScore] = useState<number>(0);
+
+  const addResult = async (userName: string, startTime: number) => {
+    const endTime = Date.now(); // 戻り値13桁の整数
+    const totalTime = endTime - startTime;
+    const timeInSeconds = totalTime / 1000; // ミリ秒を秒に変換
+    const baseScore = 10000;
+    const timeDeduction = Math.floor(timeInSeconds * 100);
+    const score = Math.max(1000, baseScore - timeDeduction);
+
+    await fetch("/api/result", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        score: score,
+        userName: userName,
+      }),
+    });
+
+    return { totalTime, score };
+  };
+
   useEffect(() => {
-    const handleKeyDown = async (e: keyboardEvent) => {
+    const handleKeyDown = async (e: KeyboardEvent) => {
       const currentQuestion = questions[currentQuestionIndex];
       if (
+        currentQuestion.question[currentPosition] && 
         e.key.toLowerCase() ===
         currentQuestion.question[currentPosition].toLowerCase()
       ) {
@@ -29,7 +55,12 @@ export default function Home() {
       }
 
       if (currentPosition === currentQuestion.question.length - 1) {
+        // 最後の問題まで終わった時
         if (currentQuestionIndex === questions.length - 1) {
+          const { totalTime, score } = await addResult(userName, startTime);
+          setTotalTime(totalTime);
+          setScore(score);
+
           setIsCompleted(true);
         } else {
           setCurrentQuestionIndex((prev) => prev + 1);
@@ -47,6 +78,8 @@ export default function Home() {
       return;
     }
     setIsStarted(true);
+    // ゲームスタート時に時刻を保存
+    setStartTime(Date.now());
   };
 
   if (!isStarted) {
@@ -62,14 +95,34 @@ export default function Home() {
           />
         </div>
         <div>
-          <button onClick={handleStart} className="px-8 py-3 text-xl bg-red-900">Start Game</button>
+          <button
+            onClick={handleStart}
+            className="px-8 py-3 text-xl bg-red-900"
+          >
+            Start Game
+          </button>
         </div>
       </main>
     );
   }
 
   if (isCompleted) {
-    return <div>ゲーム終了</div>;
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center bg-black text-white">
+        <div className="text-center p-8">
+          <h2>Result</h2>
+          <div className="mb-8 space-y-2">
+            <p>Player: {userName}</p>
+            <p>
+              Time
+              <span>{(totalTime / 1000).toFixed(2)}</span>
+              seconds
+            </p>
+            <p>Score: {score}</p>
+          </div>
+        </div>
+      </main>
+    );
   }
 
   return (
