@@ -21,11 +21,12 @@ app.post("/result", async (c) => {
     // リクエストボディからスコアとユーザー名を取得
     const { score, userName } = await c.req.json();
 
-    if(!score || !userName) {
+    if (!score || !userName) {
       return c.json({ error: "Missing score or userName" }, 400);
     }
 
-    const { UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN } = env<EnvConfig>(c);
+    const { UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN } =
+      env<EnvConfig>(c);
 
     // Redisクライアントを初期化してzaddにスコアとユーザー名のオブジェクトを入れることでデータの追加が可能
     const redis = new Redis({
@@ -43,11 +44,43 @@ app.post("/result", async (c) => {
     return c.json({
       message: "Score submitted successfully",
     });
-
-  }catch(e) {
+  } catch (e) {
     return c.json({ error: `Error: ${e}` }, 500);
   }
-})
+});
+
+app.get("/result", async (c) => {
+  try {
+
+    const { UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN } =
+      env<EnvConfig>(c);
+
+    const redis = new Redis({
+      url: UPSTASH_REDIS_REST_URL,
+      token: UPSTASH_REDIS_REST_TOKEN,
+    });
+
+    const results = await redis.zrange("typing-score-rank", 0, 9, {
+      rev: true,
+      withScores: true,
+    });
+
+    const scores = [];
+    for(let i = 0; i < results.length; i += 2) {
+      scores.push({
+        userName: results[i],
+        score: results[i + 1],
+      });
+    }
+    return c.json({
+      results: scores
+    });
+
+  }catch(e) {
+    return c.json({ message: `Error: ${e}` });
+  }
+
+});
 
 // handleはHonoとNext.jsを接続するもの
 export const GET = handle(app);
