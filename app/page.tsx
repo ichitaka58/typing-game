@@ -7,6 +7,10 @@ type Score = {
   score: number;
 };
 
+type ResultResponse = {
+  results: Score[];
+}
+
 export default function Home() {
   const questions = [
     { question: "React", image: "/monster1.jpg" },
@@ -66,9 +70,9 @@ export default function Home() {
     return { totalTime, score };
   };
 
-  const fetchScores = async () => {
+  const fetchScores = async (): Promise<Score[]> => {
     const res = await fetch("/api/result");
-    const data = await res.json();
+    const data: ResultResponse = await res.json();
     return data.results;
   };
 
