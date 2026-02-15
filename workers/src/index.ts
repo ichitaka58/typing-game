@@ -19,17 +19,22 @@
 
 import { Redis } from '@upstash/redis';
 import { Hono } from 'hono';
-import { env } from 'hono/adapter';
-// import { handle } from 'hono/vercel';
+// import { env } from 'hono/adapter';
+import type { Score, ResultResponse } from "../../shared/types";
 
-type EnvConfig = {
+type Bindings = {
 	UPSTASH_REDIS_REST_URL: string;
 	UPSTASH_REDIS_REST_TOKEN: string;
 };
 
+type CreateScoreBody = {
+	userName: string,
+	score: number,
+}
+
 // エンドポイントのbasePathを/apiにする
 // const app = new Hono().basePath('/api');
-const app = new Hono();
+const app = new Hono<{ Bindings: Bindings }>();
 
 // appに対して/pingを生やすとapi/pingを叩くとpongが返却されるようになる
 app.get('/ping', (c) => {
@@ -39,18 +44,16 @@ app.get('/ping', (c) => {
 app.post('/result', async (c) => {
 	try {
 		// リクエストボディからスコアとユーザー名を取得
-		const { score, userName } = await c.req.json();
+		const { score, userName } = await c.req.json<CreateScoreBody>();
 
 		if (score === undefined || userName === undefined || userName === "") {
 			return c.json({ error: 'Missing score or userName' }, 400);
 		}
 
-		const { UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN } = env<EnvConfig>(c);
-
 		// Redisクライアントを初期化してzaddにスコアとユーザー名のオブジェクトを入れることでデータの追加が可能
 		const redis = new Redis({
-			url: UPSTASH_REDIS_REST_URL,
-			token: UPSTASH_REDIS_REST_TOKEN,
+			url: c.env.UPSTASH_REDIS_REST_URL,
+			token: c.env.UPSTASH_REDIS_REST_TOKEN,
 		});
 
 		const result = {
@@ -64,17 +67,15 @@ app.post('/result', async (c) => {
 			message: 'Score submitted successfully',
 		});
 	} catch (e) {
-		return c.json({ error: `Error: ${e}` }, 500);
+		return c.json({ error: `Error: ${String(e)}` }, 500);
 	}
 });
 
 app.get('/result', async (c) => {
 	try {
-		const { UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN } = env<EnvConfig>(c);
-
 		const redis = new Redis({
-			url: UPSTASH_REDIS_REST_URL,
-			token: UPSTASH_REDIS_REST_TOKEN,
+			url: c.env.UPSTASH_REDIS_REST_URL,
+			token: c.env.UPSTASH_REDIS_REST_TOKEN,
 		});
 
 		const results = await redis.zrange('typing-score-rank', 0, 9, {
@@ -82,18 +83,17 @@ app.get('/result', async (c) => {
 			withScores: true,
 		});
 
-		const scores = [];
+		const scores: Score[] = [];
 		for (let i = 0; i < results.length; i += 2) {
 			scores.push({
-				userName: results[i],
-				score: results[i + 1],
+				userName: String(results[i]),
+				score: Number(results[i + 1]),
 			});
 		}
-		return c.json({
-			results: scores,
-		});
+		const response: ResultResponse = { results: scores };
+		return c.json(response);
 	} catch (e) {
-		return c.json({ message: `Error: ${e}` });
+		return c.json({ message: `Error: ${String(e)}` });
 	}
 });
 
