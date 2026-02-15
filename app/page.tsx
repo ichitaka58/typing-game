@@ -1,15 +1,8 @@
 "use client";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
+import type { Score, ResultResponse } from "../shared/types";
 
-type Score = {
-  userName: string;
-  score: number;
-};
-
-type ResultResponse = {
-  results: Score[];
-}
 
 export default function Home() {
   const questions = [
