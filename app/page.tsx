@@ -3,7 +3,6 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import type { Score, ResultResponse } from "../shared/types";
 
-
 export default function Home() {
   const questions = [
     { question: "React", image: "/monster1.jpg" },
@@ -22,6 +21,8 @@ export default function Home() {
   const [totalTime, setTotalTime] = useState<number>(0);
   const [score, setScore] = useState<number>(0);
   const [scores, setScores] = useState<Score[]>([]);
+
+  const [typoCount, setTypoCount] = useState<number>(0);
 
   const bgmRef = useRef<HTMLAudioElement | null>(null);
   const shotSoundRef = useRef<HTMLAudioElement | null>(null);
@@ -72,42 +73,43 @@ export default function Home() {
   useEffect(() => {
     const handleKeyDown = async (e: KeyboardEvent) => {
       const currentQuestion = questions[currentQuestionIndex];
-      if (
-        currentQuestion.question[currentPosition] &&
-        e.key.toLowerCase() ===
-          currentQuestion.question[currentPosition].toLowerCase()
-      ) {
-        setCurrentPosition((prev) => prev + 1);
-      }
+      const exactChar = currentQuestion.question[currentPosition];
+      if (isStarted && exactChar && e.key.toLowerCase() === exactChar.toLowerCase()) {
+        const nextPosition = currentPosition + 1;
+        setCurrentPosition(nextPosition);
 
-      // 問題の最後の文字まで終わった時
-      if (currentPosition === currentQuestion.question.length - 1) {
-        // 最後の問題まで終わった時
-        if (currentQuestionIndex === questions.length - 1) {
-          if (shotSoundRef.current) {
-            shotSoundRef.current.currentTime = 0;
-            shotSoundRef.current.play();
-          }
-          const { totalTime, score } = await addResult(userName, startTime);
-          setTotalTime(totalTime);
-          setScore(score);
-          setIsCompleted(true);
+        // 問題の最後の文字まで終わった時
+        if (nextPosition === currentQuestion.question.length) {
+          // 最後の問題まで終わった時
+          if (currentQuestionIndex === questions.length - 1) {
+            if (shotSoundRef.current) {
+              shotSoundRef.current.currentTime = 0;
+              shotSoundRef.current.play();
+            }
+            const { totalTime, score } = await addResult(userName, startTime);
+            setTotalTime(totalTime);
+            setScore(score);
+            setIsCompleted(true);
 
-          const scores = await fetchScores();
-          setScores(scores);
-        } else {
-          if (shotSoundRef.current) {
-            shotSoundRef.current.currentTime = 0;
-            shotSoundRef.current.play();
+            const scores = await fetchScores();
+            setScores(scores);
+          } else {
+            if (shotSoundRef.current) {
+              shotSoundRef.current.currentTime = 0;
+              shotSoundRef.current.play();
+            }
+            setCurrentQuestionIndex((prev) => prev + 1);
+            setCurrentPosition(0);
           }
-          setCurrentQuestionIndex((prev) => prev + 1);
-          setCurrentPosition(0);
         }
+      } else if (isStarted && exactChar) {
+        setTypoCount((prev) => prev + 1);
+        console.log(typoCount);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [currentPosition, currentQuestionIndex]);
+  }, [isStarted, currentPosition, currentQuestionIndex]);
 
   const handleStart = () => {
     if (!userName) {
@@ -178,6 +180,9 @@ export default function Home() {
             </p>
             <p className="text-xl">
               Score: <span className="text-red-500">{score}</span>
+            </p>
+            <p className="text-xl">
+              Typo Count: <span className="text-red-500">{typoCount}</span>
             </p>
           </div>
           {/* rankingの表示 */}
