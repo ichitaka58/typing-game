@@ -4,5 +4,6 @@ export type Score = {
 };
 
 export type ResultResponse = {
-  results: Score[];
+  bests: Score[];
+  worsts: Score[];
 };

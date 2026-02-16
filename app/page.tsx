@@ -20,8 +20,8 @@ export default function Home() {
   const [startTime, setStartTime] = useState<number>(0);
   const [totalTime, setTotalTime] = useState<number>(0);
   const [score, setScore] = useState<number>(0);
-  const [scores, setScores] = useState<Score[]>([]);
-
+  const [bestScores, setBestScores] = useState<Score[]>([]);
+  const [worstScores, setWorstScores] = useState<Score[]>([]);
   const [typoCount, setTypoCount] = useState<number>(0);
 
   const bgmRef = useRef<HTMLAudioElement | null>(null);
@@ -64,10 +64,9 @@ export default function Home() {
     return { totalTime, score };
   };
 
-  const fetchScores = async (): Promise<Score[]> => {
+  const fetchScores = async (): Promise<ResultResponse> => {
     const res = await fetch("/api/result");
-    const data: ResultResponse = await res.json();
-    return data.results;
+    return await res.json();
   };
 
   useEffect(() => {
@@ -91,8 +90,9 @@ export default function Home() {
             setScore(score);
             setIsCompleted(true);
 
-            const scores = await fetchScores();
-            setScores(scores);
+            const { bests, worsts } = await fetchScores();
+            setBestScores(bests);
+            setWorstScores(worsts);
           } else {
             if (shotSoundRef.current) {
               shotSoundRef.current.currentTime = 0;
@@ -187,8 +187,8 @@ export default function Home() {
           </div>
           {/* rankingの表示 */}
           <div className="mb-8">
-            <h3 className="text-2xl font-bold mb-4 text-red-600">Ranking</h3>
-            {scores.length === 0 ? (
+            <h3 className="text-2xl font-bold mb-4 text-red-600">Top 5</h3>
+            {bestScores.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8">
                 <div className="w-12 h-12 border-4 border-red-600 border-t-transparent rounded-full animate-spin"></div>
                 <p className="mt-4 text-red-500 animate-pulse">
@@ -197,7 +197,35 @@ export default function Home() {
               </div>
             ) : (
               <div className="space-y-4">
-                {scores.map((score, index) => (
+                {bestScores.map((score, index) => (
+                  <div
+                    key={index}
+                    className="flex justify-between items-center p-3 bg-black/30 border border-red-900/50 rounded"
+                  >
+                    <span
+                      className={`text-lg ${score.userName === userName ? "text-red-500" : ""}`}
+                    >
+                      {index + 1}.{score.userName}
+                    </span>
+                    <span className="text-red-500">{score.score}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          {/* 下位5位の表示 */}
+          <div className="mb-8">
+            <h3 className="text-2xl font-bold mb-4 text-red-600">Bottom 5</h3>
+            {worstScores.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8">
+                <div className="w-12 h-12 border-4 border-red-600 border-t-transparent rounded-full animate-spin"></div>
+                <p className="mt-4 text-red-500 animate-pulse">
+                  Loading scores...
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {worstScores.map((score, index) => (
                   <div
                     key={index}
                     className="flex justify-between items-center p-3 bg-black/30 border border-red-900/50 rounded"

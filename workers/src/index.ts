@@ -78,19 +78,34 @@ app.get('/result', async (c) => {
 			token: c.env.UPSTASH_REDIS_REST_TOKEN,
 		});
 
-		const results = await redis.zrange('typing-score-rank', 0, 9, {
+		const bests = await redis.zrange('typing-score-rank', 0, 4, {
 			rev: true,
 			withScores: true,
 		});
 
-		const scores: Score[] = [];
-		for (let i = 0; i < results.length; i += 2) {
-			scores.push({
-				userName: String(results[i]),
-				score: Number(results[i + 1]),
+		const bestScores: Score[] = [];
+		for (let i = 0; i < bests.length; i += 2) {
+			bestScores.push({
+				userName: String(bests[i]),
+				score: Number(bests[i + 1]),
 			});
 		}
-		const response: ResultResponse = { results: scores };
+
+		// 下位5人を取得
+		const worsts = await redis.zrange('typing-score-rank', 0, 4, {
+			withScores: true,
+		})
+
+		const worstScores: Score[] = [];
+		for (let i = 0; i < worsts.length; i += 2) {
+			worstScores.push({
+				userName: String(worsts[i]),
+				score: Number(worsts[i + 1]),
+			});
+		}
+
+		const response: ResultResponse = { bests: bestScores, worsts: worstScores };
+
 		return c.json(response);
 	} catch (e) {
 		return c.json({ message: `Error: ${String(e)}` });
