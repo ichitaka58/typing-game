@@ -1,36 +1,120 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Typing Game
+
+Next.js と Cloudflare Workers を使用した、シンプルなタイピングゲームです。
+Upstash Redis を使用したランキング機能を搭載。
+
+## Features
+
+- **リアルタイムタイピング判定**: 入力されたキーを即座に判定し、エフェクトを表示します。
+- **スコア計算システム**: タイピング速度と正確性に基づいたスコア計算。
+- **ランキング機能**: 上位5名と下位5名のスコアを表示。
+- **サウンドエフェクト**: BGMとタイピング音/正解音による没入感のあるプレイ体験。
+
+## Tech Stack
+
+### Frontend
+- **Framework**: Next.js (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **Hosting**: Vercel (Recommended)
+
+### Backend
+- **Platform**: Cloudflare Workers
+- **Framework**: Hono
+- **Database**: Upstash Redis
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js (v20 or later)
+- bun (v1.0 or later)
+- Cloudflare Account
+- Upstash Account
+
+### Installation
+
+1. クローンしたリポジトリのディレクトリに移動します。
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone <repository-url>
+cd typing-game
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. 依存関係をインストールします。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+# Frontend dependencies
+bun install
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# Backend dependencies
+cd workers
+bun install
+```
 
-## Learn More
+### Environment Variables
 
-To learn more about Next.js, take a look at the following resources:
+#### Frontend (Next.js)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+ルートディレクトリに `.env.local` を作成し、BackendのURLを設定してください。
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+# .env.local
+WORKER_API_BASE="http://localhost:8787"
+```
 
-## Deploy on Vercel
+#### Backend (Cloudflare Workers)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+`workers` ディレクトリに `.env` を作成し、Upstash Redis の認証情報を設定してください。
+**注意**: `.env` ファイルにはAPIキーなどの機密情報が含まれるため、Gitリポジトリにはコミットしないでください（`.gitignore` に追加済みであることを確認してください）。
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+# workers/.env
+UPSTASH_REDIS_REST_URL="your_upstash_redis_rest_url"
+UPSTASH_REDIS_REST_TOKEN="your_upstash_redis_rest_token"
+```
+
+本番環境へのデプロイ時は、`wrangler secret put` コマンドを使用するか、Cloudflare Dashboard から環境変数を設定してください。
+
+### Running Locally
+
+1. Backend (Cloudflare Workers) を起動します。
+
+```bash
+cd workers
+bun run dev
+# または直接 wrangler dev を実行しても構いません
+# wrangler dev
+# Server will be running at http://localhost:8787
+```
+
+2. Frontend (Next.js) を起動します。
+   別のターミナルを開いて実行してください。
+
+```bash
+# Root directory
+bun run dev
+# Server will be running at http://localhost:3000
+```
+
+3. ブラウザで [http://localhost:3000](http://localhost:3000) にアクセスします。
+
+## Project Structure
+
+```
+.
+├── app/                  # Next.js App Router source code
+│   ├── page.tsx          # Main game logic and UI
+│   └── layout.tsx        # Root layout
+├── public/               # Static assets (images, sounds)
+├── workers/              # Cloudflare Workers source code
+│   ├── src/
+│   │   └── index.ts      # API endpoints (Hono)
+│   └── wrangler.jsonc    # Wrangler configuration
+└── shared/               # Shared types between frontend and backend
+```
+
+## api endpoints
+
+- `GET /api/result`: ランキングデータの取得 (Top 5 & Bottom 5)
+- `POST /api/result`: スコアの送信
