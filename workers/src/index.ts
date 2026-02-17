@@ -108,7 +108,7 @@ app.get('/result', async (c) => {
 
 		return c.json(response);
 	} catch (e) {
-		return c.json({ message: `Error: ${String(e)}` });
+		return c.json({ message: `Error: ${String(e)}` }, 500);
 	}
 });
 
