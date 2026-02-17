@@ -73,6 +73,7 @@ export default function Home() {
     const handleKeyDown = async (e: KeyboardEvent) => {
       const currentQuestion = questions[currentQuestionIndex];
       const exactChar = currentQuestion.question[currentPosition];
+      // isStarted:ゲーム開始前の入力欄でのキー入力を無視するため
       if (isStarted && exactChar && e.key.toLowerCase() === exactChar.toLowerCase()) {
         const nextPosition = currentPosition + 1;
         setCurrentPosition(nextPosition);
@@ -89,7 +90,7 @@ export default function Home() {
             setTotalTime(totalTime);
             setScore(score);
             setIsCompleted(true);
-
+            // Top5、Bottom5を取り出し、stateに入れる
             const { bests, worsts } = await fetchScores();
             setBestScores(bests);
             setWorstScores(worsts);
@@ -103,12 +104,13 @@ export default function Home() {
           }
         }
       } else if (isStarted && exactChar) {
+        // タイプミスの場合、カウント+1
         setTypoCount((prev) => prev + 1);
-        console.log(typoCount);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
+    // 依存配列にisStartedを追加
   }, [isStarted, currentPosition, currentQuestionIndex]);
 
   const handleStart = () => {
@@ -181,11 +183,12 @@ export default function Home() {
             <p className="text-xl">
               Score: <span className="text-red-500">{score}</span>
             </p>
+            {/* 追加：タイプミスの表示 */}
             <p className="text-xl">
               Typo Count: <span className="text-red-500">{typoCount}</span>
             </p>
           </div>
-          {/* rankingの表示 */}
+          {/* Top5の表示 */}
           <div className="mb-8">
             <h3 className="text-2xl font-bold mb-4 text-red-600">Top 5</h3>
             {bestScores.length === 0 ? (
@@ -213,7 +216,7 @@ export default function Home() {
               </div>
             )}
           </div>
-          {/* 下位5位の表示 */}
+          {/* 追加：Bottom5の表示 */}
           <div className="mb-8">
             <h3 className="text-2xl font-bold mb-4 text-red-600">Bottom 5</h3>
             {worstScores.length === 0 ? (
